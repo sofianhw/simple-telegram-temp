@@ -32,9 +32,10 @@ def setup_handlers(bot: telebot.TeleBot):
     @bot.message_handler(commands=['deposit'])
     def handle_deposit(message):
         markup = types.InlineKeyboardMarkup()
+        user_id = message.from_user.id
         amounts = [1, 5, 10, 50]
         for amount in amounts:
-            button = types.InlineKeyboardButton(f"${amount}", callback_data=f"deposit_{amount}")
+            button = types.InlineKeyboardButton(f"${amount}", callback_data=f"deposit_{amount}_{user_id}")
             markup.add(button)
         
         bot.send_message(message.chat.id, "Choose an amount to deposit:", reply_markup=markup)
@@ -45,7 +46,7 @@ def setup_handlers(bot: telebot.TeleBot):
         # TODO: Integrate PayPal here and send the payment link
 
         bot.answer_callback_query(call.id)
-        telegram_id = call.message.from_user.id
+        telegram_id = call.data.split('_')[2]
         bot_id = 'dibayarbayarinbot'
 
         base_url = os.environ.get('PAYPAL_URL')
