@@ -1,0 +1,17 @@
+[tool.poetry]
+name = "avalabs-telegram"
+version = "0.1.0"
+description = ""
+authors = ["sofian hadiwijaya <me.sofian.hadiwijaya@gmail.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.11"
+pytelegrambotapi = "^4.14.1"
+fastapi = "^0.109.0"
+uvicorn = "^0.25.0"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
