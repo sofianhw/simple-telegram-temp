@@ -1,4 +1,4 @@
-import telebot
+import telebot, os
 from telebot import types
 from db_utils import register_user, get_user_quota, decrease_quota
 
@@ -45,7 +45,12 @@ def setup_handlers(bot: telebot.TeleBot):
         # TODO: Integrate PayPal here and send the payment link
 
         bot.answer_callback_query(call.id)
-        bot.send_message(call.message.chat.id, f"You chose to deposit ${amount}. Please wait while we generate a payment link.")
+        telegram_id = call.message.from_user.id
+        bot_id = 'dibayarbayarinbot'
+
+        base_url = os.environ.get('PAYPAL_URL')
+        payment_url = f"{base_url}/?telegram_id={telegram_id}&amount={amount}&bot_id={bot_id}"
+        bot.send_message(call.message.chat.id, f"You chose to deposit ${amount}. Please visit {payment_url}")
     
     @bot.message_handler(func=lambda message: True)
     def handle_all_messages(message):
