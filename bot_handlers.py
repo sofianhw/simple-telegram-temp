@@ -1,8 +1,52 @@
-import telebot, os
+import telebot, os, base64, io
+import json, requests
 from telebot import types
 from db_utils import register_user, get_user_quota, decrease_quota
+from pydub import AudioSegment
+
+def decode_base64_to_bytes(base64_string):
+    return base64.b64decode(base64_string)
+
+def convert_bytes_io_to_base64(audio_bytes_io):
+    audio_bytes_io.seek(0)
+    audio_base64 = base64.b64encode(audio_bytes_io.read()).decode()
+    return f"data:audio/oga;base64,{audio_base64}"
 
 def setup_handlers(bot: telebot.TeleBot):
+
+    def voice_ai(data_voice):
+        url = "https://speech-api.hadiwijaya.co/allin"
+        print(data_voice[:100])
+
+        payload = json.dumps({
+            "model": "whisper-1",
+            "voice_id": "C0WjTt4B1i9ao3nfW2E1",
+            "star": "nyi",
+            "file_base64": data_voice,
+            "temperature": 0.0,
+            "language": "id"
+        })
+        headers = {
+            'Content-Type': 'application/json'
+        }
+
+        response = requests.request("POST", url, headers=headers, data=payload)
+
+        return response.json()
+
+    def chat_ai(chat):
+        url = "https://chatx-api.hadiwijaya.co/chat"
+        payload = json.dumps({
+        "star": "nyi",
+        "model": "gpt-4-1106-preview",
+        "message": chat
+        })
+        headers = {
+        'Content-Type': 'application/json'
+        }
+
+        response = requests.request("POST", url, headers=headers, data=payload)
+        return response.json()
 
     def create_menu():
         menu = types.ReplyKeyboardMarkup(row_width=2)
@@ -53,12 +97,48 @@ def setup_handlers(bot: telebot.TeleBot):
         payment_url = f"{base_url}/?telegram_id={telegram_id}&amount={amount}&bot_id={bot_id}"
         bot.send_message(call.message.chat.id, f"You chose to deposit ${amount}. Please visit {payment_url}")
     
+    @bot.message_handler(content_types=["voice"])
+    def handle_voice(message):
+        user_id = message.from_user.id
+        new_quota = decrease_quota(user_id)
+        
+        if new_quota is None:
+            bot.reply_to(message, "You have no remaining quota. Please top up. /deposit")
+        else:
+            file_info = bot.get_file(message.voice.file_id)
+            print(file_info)
+            file = requests.get("https://api.telegram.org/file/bot{0}/{1}".format(os.environ.get('BOT_ID'), file_info.file_path))
+            buffer = io.BytesIO()
+            for chunk in file.iter_content(chunk_size=1024):
+                if chunk:
+                    buffer.write(chunk)
+            
+            audio_file = convert_bytes_io_to_base64(buffer)
+
+            voice_ai_data = voice_ai(audio_file)
+            
+            with open('audio.mp3','wb') as f:
+                f.write(decode_base64_to_bytes(voice_ai_data[0]['data']['voice'].split(',')[1]))
+            
+            # Use pydub to convert the MP3 file to the OGG format
+            sound = AudioSegment.from_mp3("audio.mp3")
+            sound.export("voice_message_replay.oga", format="oga")
+
+            # Send the transcribed text back to the user as a voice
+            voice = open("voice_message_replay.oga", "rb")
+            bot.send_voice(message.chat.id, voice)
+            voice.close()
+            bot.send_message(message.chat.id, voice_ai_data[0]['data']['text'])
+            os.remove("voice_message_replay.oga")
+            os.remove("audio.mp3")
+    
     @bot.message_handler(func=lambda message: True)
     def handle_all_messages(message):
         user_id = message.from_user.id
         new_quota = decrease_quota(user_id)
 
         if new_quota is not None:
-            bot.reply_to(message, f"Ok, your remaining quota is: {new_quota}")
+            chat_reply = chat_ai(message.text)['data']
+            bot.reply_to(message, chat_reply)
         else:
             bot.reply_to(message, "You have no remaining quota. Please top up. /deposit")
