@@ -43,3 +43,5 @@ poetry/core/*
 
 __pycache__
 *.db
+*.mp3
+*.oga

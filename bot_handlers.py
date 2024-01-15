@@ -15,7 +15,7 @@ def convert_bytes_io_to_base64(audio_bytes_io):
 def setup_handlers(bot: telebot.TeleBot):
 
     def voice_ai(data_voice):
-        url = "https://speech-api.hadiwijaya.co/allin"
+        url = os.environ.get('SPEECH_URL')
         print(data_voice[:100])
 
         payload = json.dumps({
@@ -35,14 +35,14 @@ def setup_handlers(bot: telebot.TeleBot):
         return response.json()
 
     def chat_ai(chat):
-        url = "https://chatx-api.hadiwijaya.co/chat"
+        url = os.environ.get('LLM_URL')
         payload = json.dumps({
-        "star": "nyi",
-        "model": "gpt-4-1106-preview",
-        "message": chat
+            "star": "nyi",
+            "model": "gpt-4-1106-preview",
+            "message": chat
         })
         headers = {
-        'Content-Type': 'application/json'
+            'Content-Type': 'application/json'
         }
 
         response = requests.request("POST", url, headers=headers, data=payload)
