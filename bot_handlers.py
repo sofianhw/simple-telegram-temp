@@ -2,6 +2,7 @@ import telebot, os, base64, io
 import json, requests
 from telebot import types
 from db_utils import register_user, get_user_quota, decrease_quota
+from llm_utils import chat_ai, voice_ai, texttovoice
 from pydub import AudioSegment
 
 def decode_base64_to_bytes(base64_string):
@@ -13,40 +14,6 @@ def convert_bytes_io_to_base64(audio_bytes_io):
     return f"data:audio/oga;base64,{audio_base64}"
 
 def setup_handlers(bot: telebot.TeleBot):
-
-    def voice_ai(data_voice):
-        url = os.environ.get('SPEECH_URL')
-        print(data_voice[:100])
-
-        payload = json.dumps({
-            "model": "whisper-1",
-            "voice_id": "C0WjTt4B1i9ao3nfW2E1",
-            "star": "nyi",
-            "file_base64": data_voice,
-            "temperature": 0.0,
-            "language": "id"
-        })
-        headers = {
-            'Content-Type': 'application/json'
-        }
-
-        response = requests.request("POST", url, headers=headers, data=payload)
-
-        return response.json()
-
-    def chat_ai(chat):
-        url = os.environ.get('LLM_URL')
-        payload = json.dumps({
-            "star": "nyi",
-            "model": "gpt-4-1106-preview",
-            "message": chat
-        })
-        headers = {
-            'Content-Type': 'application/json'
-        }
-
-        response = requests.request("POST", url, headers=headers, data=payload)
-        return response.json()
 
     def create_menu():
         menu = types.ReplyKeyboardMarkup(row_width=2)
@@ -69,7 +36,7 @@ def setup_handlers(bot: telebot.TeleBot):
         quota = get_user_quota(user_id)
 
         if quota is not None:
-            bot.send_message(message.chat.id, f"Your current quota is: {quota}", reply_markup=create_menu())
+            bot.send_message(message.chat.id, f"Your current balance is: {quota} coins", reply_markup=create_menu())
         else:
             bot.send_message(message.chat.id, "You are not registered yet. Please use /start to register.", reply_markup=create_menu())
  
@@ -79,7 +46,7 @@ def setup_handlers(bot: telebot.TeleBot):
         user_id = message.from_user.id
         amounts = [1, 5, 10, 50]
         for amount in amounts:
-            button = types.InlineKeyboardButton(f"${amount}", callback_data=f"deposit_{amount}_{user_id}")
+            button = types.InlineKeyboardButton(f"${amount} - {amount*3} Coins", callback_data=f"deposit_{amount}_{user_id}")
             markup.add(button)
         
         bot.send_message(message.chat.id, "Choose an amount to deposit:", reply_markup=markup)
@@ -95,7 +62,7 @@ def setup_handlers(bot: telebot.TeleBot):
 
         base_url = os.environ.get('PAYPAL_URL')
         payment_url = f"{base_url}/?telegram_id={telegram_id}&amount={amount}&bot_id={bot_id}"
-        bot.send_message(call.message.chat.id, f"You chose to deposit ${amount}. Please visit {payment_url}")
+        bot.send_message(call.message.chat.id, f"You chose to deposit ${amount} - {amount*3} Coins. Please visit {payment_url}")
     
     @bot.message_handler(content_types=["voice"])
     def handle_voice(message):
@@ -103,7 +70,7 @@ def setup_handlers(bot: telebot.TeleBot):
         new_quota = decrease_quota(user_id)
         
         if new_quota is None:
-            bot.reply_to(message, "You have no remaining quota. Please top up. /deposit")
+            bot.reply_to(message, "You have no remaining coins. Please top up. /deposit")
         else:
             file_info = bot.get_file(message.voice.file_id)
             print(file_info)
@@ -139,6 +106,20 @@ def setup_handlers(bot: telebot.TeleBot):
 
         if new_quota is not None:
             chat_reply = chat_ai(message.text)['data']
-            bot.reply_to(message, chat_reply)
+            voice_response = texttovoice("cmOAElxzaS4tbxmzTzCD",chat_reply)
+            with open('audio.mp3','wb') as f:
+                f.write(decode_base64_to_bytes(voice_response.split(',')[1]))
+            
+            # Use pydub to convert the MP3 file to the OGG format
+            sound = AudioSegment.from_mp3("audio.mp3")
+            sound.export("voice_message_replay.oga", format="oga")
+
+            # Send the transcribed text back to the user as a voice
+            voice = open("voice_message_replay.oga", "rb")
+            bot.send_voice(message.chat.id, voice)
+            voice.close()
+            bot.send_message(message.chat.id, chat_reply)
+            os.remove("voice_message_replay.oga")
+            os.remove("audio.mp3")
         else:
-            bot.reply_to(message, "You have no remaining quota. Please top up. /deposit")
+            bot.reply_to(message, "You have no remaining coins. Please top up. /deposit")

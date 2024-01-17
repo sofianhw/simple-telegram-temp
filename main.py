@@ -8,5 +8,5 @@ bot = telebot.TeleBot(os.environ.get('BOT_ID'))
 setup_handlers(bot)
 
 # Start polling
-bot.polling(none_stop=True)
+bot.infinity_polling(interval=0, timeout=20)
 
