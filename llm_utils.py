@@ -48,7 +48,7 @@ def texttovoice(voice_id, text):
     headers = {
         "Accept": "audio/mpeg",
         "Content-Type": "application/json",
-        "xi-api-key": "17dd999e77442c6c7e1e7733e6dd7af2"
+        "xi-api-key": os.environ.get('ELEVENLABS_KEY')
     }
 
     data = {
