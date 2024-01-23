@@ -97,11 +97,11 @@ def setup_handlers(bot: telebot.TeleBot):
             
             audio_file = convert_bytes_io_to_base64(buffer)
 
-            bot.send_chat_action(message.chat.id, "record_voice", 10)
+            bot.send_chat_action(message.chat.id, "record_voice", 25)
 
             voice_ai_data = voice_ai(audio_file)
 
-            bot.send_chat_action(message.chat.id, "upload_voice", 10)
+            bot.send_chat_action(message.chat.id, "upload_voice", 25)
             
             with open('audio.mp3','wb') as f:
                 f.write(decode_base64_to_bytes(voice_ai_data[0]['data']['voice'].split(',')[1]))
@@ -124,12 +124,12 @@ def setup_handlers(bot: telebot.TeleBot):
         new_quota = decrease_quota(user_id)
 
         if new_quota is not None:
-            bot.send_chat_action(message.chat.id, "record_voice", 10)
+            bot.send_chat_action(message.chat.id, "record_voice", 25)
             
             chat_reply = chat_ai(message.text)['data']
             voice_response = texttovoice(chat_reply)
 
-            bot.send_chat_action(message.chat.id, "upload_voice", 10)
+            bot.send_chat_action(message.chat.id, "upload_voice", 25)
 
             with open('audio.mp3','wb') as f:
                 f.write(decode_base64_to_bytes(voice_response.split(',')[1]))
