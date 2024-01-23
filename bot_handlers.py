@@ -2,7 +2,7 @@ import telebot, os, base64, io
 import json, requests
 from telebot import types
 from db_utils import register_user, get_user_quota, decrease_quota
-from llm_utils import chat_ai, voice_ai, texttovoice
+from llm_utils import chat_ai, voice_ai, reset_ai, texttovoice
 from pydub import AudioSegment
 
 def decode_base64_to_bytes(base64_string):
@@ -17,7 +17,12 @@ def setup_handlers(bot: telebot.TeleBot):
 
     def create_menu():
         menu = types.ReplyKeyboardMarkup(row_width=2)
-        items = [types.KeyboardButton('/balance'), types.KeyboardButton('/deposit')]
+        items = [
+            types.KeyboardButton('/balance'), 
+            types.KeyboardButton('/deposit'),
+            types.KeyboardButton('/reset'),
+            types.KeyboardButton('/about')
+        ]
         menu.add(*items)
         return menu
 
@@ -29,6 +34,16 @@ def setup_handlers(bot: telebot.TeleBot):
 
         response = register_user(user_id, username, name)
         bot.send_message(message.chat.id, f"Welcome, {name}! {response}", reply_markup=create_menu())
+
+    @bot.message_handler(commands=['reset'])
+    def handle_balance(message):
+        res = reset_ai()
+        bot.send_message(message.chat.id, f"Your chat session has been restarted.", reply_markup=create_menu())
+
+    @bot.message_handler(commands=['about'])
+    def handle_balance(message):
+        res = reset_ai()
+        bot.send_message(message.chat.id, f"Created by kinkan.ai.", reply_markup=create_menu())
 
     @bot.message_handler(commands=['balance'])
     def handle_balance(message):
@@ -58,7 +73,7 @@ def setup_handlers(bot: telebot.TeleBot):
 
         bot.answer_callback_query(call.id)
         telegram_id = call.data.split('_')[2]
-        bot_id = 'dibayarbayarinbot'
+        bot_id = os.environ.get('BOT_USERNAME')
 
         base_url = os.environ.get('PAYPAL_URL')
         payment_url = f"{base_url}/?telegram_id={telegram_id}&amount={amount}&bot_id={bot_id}"
@@ -82,7 +97,11 @@ def setup_handlers(bot: telebot.TeleBot):
             
             audio_file = convert_bytes_io_to_base64(buffer)
 
+            bot.send_chat_action(message.chat.id, "record_voice", 10)
+
             voice_ai_data = voice_ai(audio_file)
+
+            bot.send_chat_action(message.chat.id, "upload_voice", 10)
             
             with open('audio.mp3','wb') as f:
                 f.write(decode_base64_to_bytes(voice_ai_data[0]['data']['voice'].split(',')[1]))
@@ -105,8 +124,13 @@ def setup_handlers(bot: telebot.TeleBot):
         new_quota = decrease_quota(user_id)
 
         if new_quota is not None:
+            bot.send_chat_action(message.chat.id, "record_voice", 10)
+            
             chat_reply = chat_ai(message.text)['data']
-            voice_response = texttovoice("cmOAElxzaS4tbxmzTzCD",chat_reply)
+            voice_response = texttovoice(chat_reply)
+
+            bot.send_chat_action(message.chat.id, "upload_voice", 10)
+
             with open('audio.mp3','wb') as f:
                 f.write(decode_base64_to_bytes(voice_response.split(',')[1]))
             

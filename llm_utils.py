@@ -10,11 +10,10 @@ def convert_bytes_io_to_base64(audio_bytes_io):
 
 def voice_ai(data_voice):
     url = os.environ.get('SPEECH_URL')
-    print(data_voice[:100])
 
     payload = json.dumps({
         "model": "whisper-1",
-        "voice_id": "cmOAElxzaS4tbxmzTzCD",
+        "voice_id": os.environ.get("VOICE_ID"),
         "star": "kinkan_alisha",
         "file_base64": data_voice,
         "temperature": 0.0,
@@ -31,7 +30,7 @@ def voice_ai(data_voice):
 def chat_ai(chat):
     url = os.environ.get('LLM_URL')
     payload = json.dumps({
-        "star": "kinkan_alisha",
+        "star": os.environ.get("STAR_ID"),
         "model": "gpt-4-1106-preview",
         "message": chat
     })
@@ -39,11 +38,19 @@ def chat_ai(chat):
         'Content-Type': 'application/json'
     }
 
-    response = requests.request("POST", url, headers=headers, data=payload)
+    response = requests.request("POST", url+"chat", headers=headers, data=payload)
     return response.json()
 
-def texttovoice(voice_id, text):
-    url = f"https://api.elevenlabs.io/v1/text-to-speech/{voice_id}"
+def reset_ai():
+    url = os.environ.get('LLM_URL')
+    payload = ""
+    headers = {}
+
+    response = requests.request("GET", url+"reset", headers=headers, data=payload)
+    return response.json()
+
+def texttovoice(text):
+    url = f"https://api.elevenlabs.io/v1/text-to-speech/{os.environ.get('VOICE_ID')}"
 
     headers = {
         "Accept": "audio/mpeg",
