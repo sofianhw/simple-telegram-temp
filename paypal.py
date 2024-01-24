@@ -1,6 +1,6 @@
 import uvicorn
 from fastapi import FastAPI, Request
-from db_utils import deposit
+from db_utils import deposit, record_transaction
 
 app = FastAPI()
 
@@ -17,9 +17,10 @@ async def paypal_webhook(request: Request):
         custom_id = data['resource']['purchase_units'][0]['custom_id']
         user_id = custom_id.split('-')[0]
         amount = int(float(data['resource']['purchase_units'][0]['amount']['value']))
-        print(user_id)
-        print(amount)
-        deposit(user_id,amount)
+        quota = amount * 3
+        print(f"user = {user_id} top up ${amount} get {quota}")
+        record_transaction(user_id, amount, quota)
+        deposit(user_id,quota)
 
         # Return a success response
         return {"status": "success"}
