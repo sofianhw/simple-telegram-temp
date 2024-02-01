@@ -22,7 +22,7 @@ async def paypal_webhook(request: Request):
         print(f"user = {user_id} top up ${amount} get {quota}")
         record_transaction(user_id, amount, quota)
         deposit(user_id,quota)
-        send_chat(user_id, f"Success top up ${amount}, you can check your latest balance /balance")
+        send_chat(user_id, f"Thanks for top up ${amount} for {amount*3} chats, you can check your current balance with /balance .")
         # Return a success response
         return {"status": "success"}
     else:

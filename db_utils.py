@@ -1,4 +1,4 @@
-import sqlite3
+import sqlite3, os
 
 def get_db_connection():
     return sqlite3.connect('chatbot.db')
@@ -14,7 +14,7 @@ def register_user(user_id, username, name):
         cursor.execute("INSERT INTO Users (user_id, username, name, quota) VALUES (?, ?, ?, ?)", 
                        (user_id, username, name, 10))
         conn.commit()
-        response = f"Registered with 10 free quotas."
+        response = os.environ.get('NEW_REGISTER')
     else:
         response = "Already registered."
 

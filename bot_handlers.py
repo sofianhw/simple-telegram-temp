@@ -15,7 +15,7 @@ def convert_bytes_io_to_base64(audio_bytes_io):
 
 def setup_handlers(bot: telebot.TeleBot):
 
-    def create_menu():
+    async def create_menu():
         menu = types.ReplyKeyboardMarkup(row_width=2)
         items = [
             types.KeyboardButton('/balance'), 
@@ -27,33 +27,33 @@ def setup_handlers(bot: telebot.TeleBot):
         return menu
 
     @bot.message_handler(commands=['start'])
-    def handle_start(message):
+    async def handle_start(message):
         user_id = message.from_user.id
         username = message.from_user.username
         name = message.from_user.first_name
 
         response = register_user(user_id, username, name)
-        bot.send_message(message.chat.id, f"Welcome, {name}! {response}", reply_markup=create_menu())
+        await bot.send_message(message.chat.id, os.environ.get('START').format(username=name), reply_markup=create_menu())
 
     @bot.message_handler(commands=['reset'])
-    def handle_balance(message):
+    async def handle_balance(message):
         res = reset_ai()
-        bot.send_message(message.chat.id, f"Your chat session has been restarted.", reply_markup=create_menu())
+        await bot.send_message(message.chat.id, os.environ.get('RESET'), reply_markup=create_menu())
 
     @bot.message_handler(commands=['about'])
-    def handle_balance(message):
+    async def handle_balance(message):
         res = reset_ai()
-        bot.send_message(message.chat.id, f"Created by kinkan.ai.", reply_markup=create_menu())
+        await bot.send_message(message.chat.id, os.environ.get('ABOUT'), reply_markup=create_menu())
 
     @bot.message_handler(commands=['balance'])
-    def handle_balance(message):
+    async def handle_balance(message):
         user_id = message.from_user.id
         quota = get_user_quota(user_id)
 
         if quota is not None:
-            bot.send_message(message.chat.id, f"Your current balance is: {quota} coins", reply_markup=create_menu())
+            await bot.send_message(message.chat.id, os.environ.get('BALANCE').format(quota=quota), reply_markup=create_menu())
         else:
-            bot.send_message(message.chat.id, "You are not registered yet. Please use /start to register.", reply_markup=create_menu())
+            await bot.send_message(message.chat.id, "You are not registered yet. Please use /start to register.", reply_markup=create_menu())
  
     @bot.message_handler(commands=['deposit'])
     def handle_deposit(message):
@@ -61,10 +61,10 @@ def setup_handlers(bot: telebot.TeleBot):
         user_id = message.from_user.id
         amounts = [1, 5, 10, 50]
         for amount in amounts:
-            button = types.InlineKeyboardButton(f"${amount} - {amount*3} Coins", callback_data=f"deposit_{amount}_{user_id}")
+            button = types.InlineKeyboardButton(f"${amount} for {amount*3} chats", callback_data=f"deposit_{amount}_{user_id}")
             markup.add(button)
         
-        bot.send_message(message.chat.id, "Choose an amount to deposit:", reply_markup=markup)
+        bot.send_message(message.chat.id, "🔹 Choose an amount to deposit:", reply_markup=markup)
 
     @bot.callback_query_handler(func=lambda call: call.data.startswith('deposit_'))
     def handle_query(call):
@@ -77,7 +77,7 @@ def setup_handlers(bot: telebot.TeleBot):
 
         base_url = os.environ.get('PAYPAL_URL')
         payment_url = f"{base_url}/?telegram_id={telegram_id}&amount={amount}&bot_id={bot_id}"
-        bot.send_message(call.message.chat.id, f"You chose to deposit ${amount} - {amount*3} Coins. Please visit {payment_url}")
+        bot.send_message(call.message.chat.id, f"You chose to deposit ${amount} for {amount*3} chats. Please visit {payment_url}")
     
     @bot.message_handler(content_types=["voice"])
     def handle_voice(message):
