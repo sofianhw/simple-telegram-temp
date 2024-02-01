@@ -15,10 +15,10 @@ def voice_ai(data_voice, user_id):
         "model": "whisper-1",
         "voice_id": os.environ.get("VOICE_ID"),
         "star": "kinkan_alisha",
-        "id": user_id,
+        "id": str(user_id),
         "file_base64": data_voice,
         "temperature": 0.0,
-        "language": "id"
+        "language": "en"
     })
     headers = {
         'Content-Type': 'application/json'
@@ -33,13 +33,13 @@ def chat_ai(chat, user_id):
     payload = json.dumps({
         "star": os.environ.get("STAR_ID"),
         "model": "gpt-4-turbo-preview",
-        "id": user_id,
+        "id": str(user_id),
         "message": chat
     })
     headers = {
         'Content-Type': 'application/json'
     }
-
+    
     response = requests.request("POST", url+"chat", headers=headers, data=payload)
     return response.json()
 
@@ -47,7 +47,7 @@ def reset_ai(user_id):
     url = os.environ.get('LLM_URL')
     payload = json.dumps({
         "star": os.environ.get("STAR_ID"),
-        "id": user_id
+        "id": str(user_id)
     })
     headers = {
         'Content-Type': 'application/json'
@@ -71,7 +71,7 @@ def texttovoice(text):
         "voice_settings": {
             "stability": 0.5,
             "similarity_boost": 0.5,
-            "language_id": "id"
+            "language_id": "en"
         }
     }
 

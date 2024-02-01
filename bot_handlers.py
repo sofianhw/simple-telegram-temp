@@ -15,7 +15,7 @@ def convert_bytes_io_to_base64(audio_bytes_io):
 
 def setup_handlers(bot: telebot.TeleBot):
 
-    async def create_menu():
+    def create_menu():
         menu = types.ReplyKeyboardMarkup(row_width=2)
         items = [
             types.KeyboardButton('/balance'), 
@@ -27,33 +27,47 @@ def setup_handlers(bot: telebot.TeleBot):
         return menu
 
     @bot.message_handler(commands=['start'])
-    async def handle_start(message):
+    def handle_start(message):
         user_id = message.from_user.id
         username = message.from_user.username
         name = message.from_user.first_name
 
         response = register_user(user_id, username, name)
-        await bot.send_message(message.chat.id, os.environ.get('START').format(username=name), reply_markup=create_menu())
+        # bot.send_message(message.chat.id, os.environ.get('START').format(username=name), reply_markup=create_menu())
+        voice_response = texttovoice(os.environ.get('START').format(username=name))
+        with open('audio.mp3','wb') as f:
+            f.write(decode_base64_to_bytes(voice_response.split(',')[1]))
+        
+        # Use pydub to convert the MP3 file to the OGG format
+        sound = AudioSegment.from_mp3("audio.mp3")
+        sound.export("voice_message_replay.oga", format="oga")
+
+        # Send the transcribed text back to the user as a voice
+        voice = open("voice_message_replay.oga", "rb")
+        bot.send_voice(message.chat.id, voice)
+        voice.close()
+        bot.send_message(message.chat.id, os.environ.get('START').format(username=name))
+        os.remove("voice_message_replay.oga")
+        os.remove("audio.mp3")
 
     @bot.message_handler(commands=['reset'])
-    async def handle_balance(message):
+    def handle_balance(message):
         res = reset_ai(message.chat.id)
-        await bot.send_message(message.chat.id, os.environ.get('RESET'), reply_markup=create_menu())
+        bot.send_message(message.chat.id, os.environ.get('RESET'), reply_markup=create_menu())
 
     @bot.message_handler(commands=['about'])
-    async def handle_balance(message):
-        res = reset_ai()
-        await bot.send_message(message.chat.id, os.environ.get('ABOUT'), reply_markup=create_menu())
+    def handle_balance(message):
+        bot.send_message(message.chat.id, os.environ.get('ABOUT'), reply_markup=create_menu())
 
     @bot.message_handler(commands=['balance'])
-    async def handle_balance(message):
+    def handle_balance(message):
         user_id = message.from_user.id
         quota = get_user_quota(user_id)
 
         if quota is not None:
-            await bot.send_message(message.chat.id, os.environ.get('BALANCE').format(quota=quota), reply_markup=create_menu())
+            bot.send_message(message.chat.id, os.environ.get('BALANCE').format(quota=quota), reply_markup=create_menu())
         else:
-            await bot.send_message(message.chat.id, "You are not registered yet. Please use /start to register.", reply_markup=create_menu())
+            bot.send_message(message.chat.id, "You are not registered yet. Please use /start to register.", reply_markup=create_menu())
  
     @bot.message_handler(commands=['deposit'])
     def handle_deposit(message):
