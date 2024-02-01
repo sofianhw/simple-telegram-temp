@@ -8,13 +8,14 @@ def convert_bytes_io_to_base64(audio_bytes_io):
     audio_base64 = base64.b64encode(audio_bytes_io.read()).decode()
     return f"data:audio/mpeg;base64,{audio_base64}"
 
-def voice_ai(data_voice):
+def voice_ai(data_voice, user_id):
     url = os.environ.get('SPEECH_URL')
 
     payload = json.dumps({
         "model": "whisper-1",
         "voice_id": os.environ.get("VOICE_ID"),
         "star": "kinkan_alisha",
+        "id": user_id,
         "file_base64": data_voice,
         "temperature": 0.0,
         "language": "id"
@@ -27,11 +28,12 @@ def voice_ai(data_voice):
 
     return response.json()
 
-def chat_ai(chat):
+def chat_ai(chat, user_id):
     url = os.environ.get('LLM_URL')
     payload = json.dumps({
         "star": os.environ.get("STAR_ID"),
-        "model": "gpt-4-1106-preview",
+        "model": "gpt-4-turbo-preview",
+        "id": user_id,
         "message": chat
     })
     headers = {
@@ -41,12 +43,17 @@ def chat_ai(chat):
     response = requests.request("POST", url+"chat", headers=headers, data=payload)
     return response.json()
 
-def reset_ai():
+def reset_ai(user_id):
     url = os.environ.get('LLM_URL')
-    payload = ""
-    headers = {}
+    payload = json.dumps({
+        "star": os.environ.get("STAR_ID"),
+        "id": user_id
+    })
+    headers = {
+        'Content-Type': 'application/json'
+    }
 
-    response = requests.request("GET", url+"reset", headers=headers, data=payload)
+    response = requests.request("POST", url+"reset", headers=headers, data=payload)
     return response.json()
 
 def texttovoice(text):

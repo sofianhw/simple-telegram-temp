@@ -37,7 +37,7 @@ def setup_handlers(bot: telebot.TeleBot):
 
     @bot.message_handler(commands=['reset'])
     async def handle_balance(message):
-        res = reset_ai()
+        res = reset_ai(message.chat.id)
         await bot.send_message(message.chat.id, os.environ.get('RESET'), reply_markup=create_menu())
 
     @bot.message_handler(commands=['about'])
@@ -99,7 +99,7 @@ def setup_handlers(bot: telebot.TeleBot):
 
             bot.send_chat_action(message.chat.id, "record_voice", 25)
 
-            voice_ai_data = voice_ai(audio_file)
+            voice_ai_data = voice_ai(audio_file, message.chat.id)
 
             bot.send_chat_action(message.chat.id, "upload_voice", 25)
             
@@ -126,7 +126,7 @@ def setup_handlers(bot: telebot.TeleBot):
         if new_quota is not None:
             bot.send_chat_action(message.chat.id, "record_voice", 25)
             
-            chat_reply = chat_ai(message.text)['data']
+            chat_reply = chat_ai(message.text, message.chat.id)['data']
             voice_response = texttovoice(chat_reply)
 
             bot.send_chat_action(message.chat.id, "upload_voice", 25)
