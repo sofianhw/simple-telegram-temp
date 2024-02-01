@@ -46,7 +46,7 @@ def setup_handlers(bot: telebot.TeleBot):
         voice = open("voice_message_replay.oga", "rb")
         bot.send_voice(message.chat.id, voice)
         voice.close()
-        bot.send_message(message.chat.id, os.environ.get('START').format(username=name))
+        bot.send_message(message.chat.id, os.environ.get('START').format(username=name), reply_markup=create_menu())
         os.remove("voice_message_replay.oga")
         os.remove("audio.mp3")
 
