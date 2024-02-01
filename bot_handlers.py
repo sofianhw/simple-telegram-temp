@@ -11,7 +11,7 @@ def decode_base64_to_bytes(base64_string):
 def convert_bytes_io_to_base64(audio_bytes_io):
     audio_bytes_io.seek(0)
     audio_base64 = base64.b64encode(audio_bytes_io.read()).decode()
-    return f"data:audio/oga;base64,{audio_base64}"
+    return f"data:audio/ogg;base64,{audio_base64}"
 
 def setup_handlers(bot: telebot.TeleBot):
 
@@ -25,6 +25,21 @@ def setup_handlers(bot: telebot.TeleBot):
         ]
         menu.add(*items)
         return menu
+    
+    def voice_gen(voice_response):
+        with open('audio.mp3','wb') as f:
+            f.write(decode_base64_to_bytes(voice_response.split(',')[1]))
+        
+        # Use pydub to convert the MP3 file to the OGG format
+        sound = AudioSegment.from_mp3("audio.mp3")
+        sound.export("voice_message_replay.ogg", format="opus")
+
+        # Send the transcribed text back to the user as a voice
+        return open("voice_message_replay.ogg", "rb")
+    
+    def voice_remove():
+        os.remove("voice_message_replay.ogg")
+        os.remove("audio.mp3")
 
     @bot.message_handler(commands=['start'])
     def handle_start(message):
@@ -35,20 +50,11 @@ def setup_handlers(bot: telebot.TeleBot):
         response = register_user(user_id, username, name)
         # bot.send_message(message.chat.id, os.environ.get('START').format(username=name), reply_markup=create_menu())
         voice_response = texttovoice(os.environ.get('START').format(username=name))
-        with open('audio.mp3','wb') as f:
-            f.write(decode_base64_to_bytes(voice_response.split(',')[1]))
         
-        # Use pydub to convert the MP3 file to the OGG format
-        sound = AudioSegment.from_mp3("audio.mp3")
-        sound.export("voice_message_replay.oga", format="oga")
-
-        # Send the transcribed text back to the user as a voice
-        voice = open("voice_message_replay.oga", "rb")
-        bot.send_voice(message.chat.id, voice)
+        voice = voice_gen(voice_response)
+        bot.send_voice(message.chat.id, voice, os.environ.get('START').format(username=name), reply_markup=create_menu())
         voice.close()
-        bot.send_message(message.chat.id, os.environ.get('START').format(username=name), reply_markup=create_menu())
-        os.remove("voice_message_replay.oga")
-        os.remove("audio.mp3")
+        voice_remove()
 
     @bot.message_handler(commands=['reset'])
     def handle_balance(message):
@@ -117,20 +123,10 @@ def setup_handlers(bot: telebot.TeleBot):
 
             bot.send_chat_action(message.chat.id, "upload_voice", 25)
             
-            with open('audio.mp3','wb') as f:
-                f.write(decode_base64_to_bytes(voice_ai_data[0]['data']['voice'].split(',')[1]))
-            
-            # Use pydub to convert the MP3 file to the OGG format
-            sound = AudioSegment.from_mp3("audio.mp3")
-            sound.export("voice_message_replay.oga", format="oga")
-
-            # Send the transcribed text back to the user as a voice
-            voice = open("voice_message_replay.oga", "rb")
-            bot.send_voice(message.chat.id, voice)
+            voice = voice = voice_gen(voice_ai_data[0]['data']['voice'])
+            bot.send_voice(message.chat.id, voice, voice_ai_data[0]['data']['text'])
             voice.close()
-            bot.send_message(message.chat.id, voice_ai_data[0]['data']['text'])
-            os.remove("voice_message_replay.oga")
-            os.remove("audio.mp3")
+            voice_remove()
     
     @bot.message_handler(func=lambda message: True)
     def handle_all_messages(message):
@@ -145,19 +141,9 @@ def setup_handlers(bot: telebot.TeleBot):
 
             bot.send_chat_action(message.chat.id, "upload_voice", 25)
 
-            with open('audio.mp3','wb') as f:
-                f.write(decode_base64_to_bytes(voice_response.split(',')[1]))
-            
-            # Use pydub to convert the MP3 file to the OGG format
-            sound = AudioSegment.from_mp3("audio.mp3")
-            sound.export("voice_message_replay.oga", format="oga")
-
-            # Send the transcribed text back to the user as a voice
-            voice = open("voice_message_replay.oga", "rb")
-            bot.send_voice(message.chat.id, voice)
+            voice = voice_gen(voice_response)
+            bot.send_voice(message.chat.id, voice, chat_reply)
             voice.close()
-            bot.send_message(message.chat.id, chat_reply)
-            os.remove("voice_message_replay.oga")
-            os.remove("audio.mp3")
+            voice_remove()
         else:
             bot.reply_to(message, "You have no remaining coins. Please top up. /deposit")
