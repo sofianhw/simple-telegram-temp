@@ -16,13 +16,16 @@ async def paypal_webhook(request: Request):
         # Implement your logic here
         print("Order completed!")
         custom_id = data['resource']['purchase_units'][0]['custom_id']
-        user_id = custom_id.split('-')[0]
+        user_id, bot_id, date = custom_id.split('-')
         amount = int(float(data['resource']['purchase_units'][0]['amount']['value']))
         quota = amount * 3
-        print(f"user = {user_id} top up ${amount} get {quota}")
-        record_transaction(user_id, amount, quota)
-        deposit(user_id,quota)
-        send_chat(user_id, f"Thanks for top up ${amount} for {amount*3} chats, you can check your current balance with /balance .")
+        try:
+            print(f"user = {user_id} top up ${amount} get {quota} to {bot_id} on {date}")
+            record_transaction(user_id, amount, quota, bot_id)
+            deposit(user_id, quota, bot_id)
+            send_chat(user_id, f"Thanks for top up ${amount} for {amount*3} chats, you can check your current balance with /balance .")
+        except:
+            return {"error": f"{bot_id} is Not Found"}
         # Return a success response
         return {"status": "success"}
     else:
